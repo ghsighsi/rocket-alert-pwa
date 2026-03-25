@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#f0f0f5">
+  <meta name="description" content="התרעות צבע אדום בזמן אמת - Red Alert Israel">
+
+  <title>צבע אדום | Red Alert</title>
+
+  <link rel="manifest" href="/manifest.json">
+  <link rel="icon" type="image/svg+xml" href="/icon.svg">
+  <link rel="apple-touch-icon" href="/icon-192.png">
+
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700;800;900&family=Noto+Sans+Hebrew:wght@400;600;700;900&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="/style.css?v=31">
+</head>
+<body class="theme-light">
+  <!-- ── Map ── -->
+  <div id="map"></div>
+
+  <!-- ── Top Bar ── -->
+  <header id="topbar">
+    <div class="topbar-inner">
+      <div class="topbar-brand">
+        <div class="brand-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z"/>
+            <circle cx="12" cy="10" r="3"/>
+          </svg>
+        </div>
+        <span class="brand-text">צבע אדום</span>
+      </div>
+
+      <div class="topbar-actions">
+        <span id="alert-count-badge" class="alert-count-badge" style="display:none">0</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- ── Floating buttons — left side ── -->
+  <div class="floating-buttons">
+    <button id="btn-theme" class="floating-btn" aria-label="ערכת נושא">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+      </svg>
+    </button>
+    <button id="btn-settings" class="floating-btn" aria-label="הגדרות">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12.22 2h-.44a2 2 0 00-2 2v.18a2 2 0 01-1 1.73l-.43.25a2 2 0 01-2 0l-.15-.08a2 2 0 00-2.73.73l-.22.38a2 2 0 00.73 2.73l.15.1a2 2 0 011 1.72v.51a2 2 0 01-1 1.74l-.15.09a2 2 0 00-.73 2.73l.22.38a2 2 0 002.73.73l.15-.08a2 2 0 012 0l.43.25a2 2 0 011 1.73V20a2 2 0 002 2h.44a2 2 0 002-2v-.18a2 2 0 011-1.73l.43-.25a2 2 0 012 0l.15.08a2 2 0 002.73-.73l.22-.39a2 2 0 00-.73-2.73l-.15-.08a2 2 0 01-1-1.74v-.5a2 2 0 011-1.74l.15-.09a2 2 0 00.73-2.73l-.22-.38a2 2 0 00-2.73-.73l-.15.08a2 2 0 01-2 0l-.43-.25a2 2 0 01-1-1.73V4a2 2 0 00-2-2z"/>
+        <circle cx="12" cy="12" r="3"/>
+      </svg>
+    </button>
+  </div>
+
+  <!-- ── Status Badge ── -->
+  <div id="status-badge" class="status-quiet">
+    <div class="status-dot"></div>
+    <span class="status-text">שקט כרגע</span>
+  </div>
+
+  <!-- ── Connection indicator ── -->
+  <div id="connection-indicator">
+    <div class="conn-dot"></div>
+    <span class="conn-text">מתחבר...</span>
+  </div>
+
+  <!-- ── Active Alerts List ── -->
+  <div id="alerts-list">
+    <div class="alerts-list-header">
+      <span class="alerts-list-title">אזורים פעילים</span>
+      <button id="btn-toggle-alerts" class="alerts-toggle-btn">▾</button>
+    </div>
+    <div id="alerts-list-body">
+      <div id="alerts-list-content" class="alerts-list-content">
+        <div class="alerts-empty-msg">אין התראות פעילות</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Settings Panel ── -->
+  <div id="settings-panel" class="panel-hidden">
+    <div class="panel-backdrop"></div>
+    <div class="panel-content">
+      <div class="panel-header">
+        <h2>הגדרות</h2>
+        <button id="btn-close-settings" class="panel-close" aria-label="סגור">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+            <line x1="18" y1="6" x2="6" y2="18"/>
+            <line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      </div>
+
+      <div class="setting-group">
+        <label class="setting-label">עיר בית</label>
+        <p class="setting-desc">קבלת התראות כשיש אזעקה בעיר שלך</p>
+        <select id="select-city" class="setting-select">
+          <option value="">טוען ערים...</option>
+        </select>
+      </div>
+
+      <div class="setting-group">
+        <label class="setting-label">התראות דפדפן</label>
+        <p class="setting-desc">הפעלת Push Notifications</p>
+        <div class="setting-row">
+          <span id="notif-status" class="notif-status">לא מופעל</span>
+          <button id="btn-enable-notif" class="setting-btn">הפעל</button>
+        </div>
+      </div>
+
+      <div class="setting-group">
+        <label class="setting-label">השתק הכל</label>
+        <p class="setting-desc">השתקת כל הצלילים וההתראות</p>
+        <div class="setting-row">
+          <label class="toggle">
+            <input type="checkbox" id="toggle-mute">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+      </div>
+
+      <div class="setting-group">
+        <label class="setting-label">אזעקת טסט</label>
+        <p class="setting-desc">שליחת אזעקת דמה לבדיקת המערכת</p>
+        <div class="setting-row">
+          <button id="btn-test-alert" class="setting-btn setting-btn-danger">בדיקה</button>
+        </div>
+      </div>
+
+      <div class="panel-footer">
+        <p>מקור: פיקוד העורף<br>עדכון כל 2 שניות</p>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/app.js?v=31"></script>
+</body>
+</html>

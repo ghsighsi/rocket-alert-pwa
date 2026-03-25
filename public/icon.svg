@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="96" fill="#0a0a0f"/>
+  <circle cx="256" cy="220" r="120" fill="none" stroke="#ef4444" stroke-width="12" opacity="0.3"/>
+  <circle cx="256" cy="220" r="70" fill="none" stroke="#ef4444" stroke-width="12" opacity="0.5"/>
+  <circle cx="256" cy="220" r="20" fill="#ef4444"/>
+  <path d="M256 370 L256 430" stroke="#ef4444" stroke-width="12" stroke-linecap="round"/>
+  <circle cx="256" cy="458" r="8" fill="#ef4444"/>
+  <text x="256" y="490" text-anchor="middle" font-family="sans-serif" font-weight="900" font-size="36" fill="#e8e8f0" opacity="0">צבע אדום</text>
+</svg>

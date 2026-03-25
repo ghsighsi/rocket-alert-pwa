@@ -1,0 +1,33 @@
+version: "3.8"
+
+services:
+  rocket-alert:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: rocket-alert-pwa
+    image: rocket-alert-pwa:latest
+    restart: unless-stopped
+    ports:
+      - "${HOST_PORT:-3088}:${PORT:-3088}"
+    environment:
+      - PORT=${PORT:-3088}
+      - DEFAULT_CITY=${DEFAULT_CITY:-מודיעין - מכבים רעות}
+      - POLL_INTERVAL=${POLL_INTERVAL:-2000}
+      - GEOJSON_URL=${GEOJSON_URL:-}
+      - NODE_ENV=production
+    volumes:
+      - ./public:/app/public:ro
+      - ./server.js:/app/server.js:ro
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3088/api/config"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
