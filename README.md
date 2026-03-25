@@ -21,8 +21,6 @@ Real-time rocket alert Progressive Web App for Israel. Displays active alerts on
 ### Docker (recommended)
 
 ```bash
-cp .env.example .env
-# Edit .env to set your DEFAULT_CITY
 docker compose up -d
 ```
 
@@ -32,20 +30,10 @@ The app will be available at `http://localhost:3088`.
 
 ```bash
 npm install
-cp .env.example .env
 node server.js
 ```
 
-## Configuration
-
-Copy `.env.example` to `.env` and adjust:
-
-| Variable | Default | Description |
-|---|---|---|
-| `PORT` | `3088` | Server port |
-| `HOST_PORT` | `3088` | External mapped port (Docker) |
-| `DEFAULT_CITY` | `תל אביב - יפו` | Home city for notifications |
-| `POLL_INTERVAL` | `2000` | Polling interval in ms |
+Open `http://localhost:3088` and select your home city from the settings menu.
 
 ## Tech Stack
 
