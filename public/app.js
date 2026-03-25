@@ -386,11 +386,21 @@
 
   // Shared helper: check if any city name matches homeCity
   function isHomeCityMatch(cityNames) {
-    if (!homeCity) return true; // No home city = hear everything
-    const match = cityNames.some((c) => c === homeCity);
-    if (!match) {
-      console.log(`[FILTER] Muted — home="${homeCity}" not in [${cityNames.slice(0, 3).join(", ")}${cityNames.length > 3 ? "..." : ""}]`);
-    }
+    if (!homeCity) return true;
+    const homeNorm = normalizeName(homeCity);
+    const homeWords = homeNorm.split(" ");
+    const match = cityNames.some((c) => {
+      const cityNorm = normalizeName(c);
+      if (cityNorm === homeNorm) return true;
+      if (cityNorm.startsWith(homeNorm + " ") || homeNorm.startsWith(cityNorm + " ")) return true;
+      const cityWords = cityNorm.split(" ");
+      // Same first word (if 4+ chars: חיפה, מודיעין, נהריה...)
+      if (homeWords[0].length >= 4 && homeWords[0] === cityWords[0]) return true;
+      // Same first two words (תל אביב, ראשון לציון, פתח תקווה...)
+      if (homeWords.length >= 2 && cityWords.length >= 2 &&
+          homeWords[0] === cityWords[0] && homeWords[1] === cityWords[1]) return true;
+      return false;
+    });
     return match;
   }
 
