@@ -8,8 +8,8 @@ RUN npm ci --omit=dev 2>/dev/null || npm install --omit=dev
 # ── Production stage ──
 FROM node:20-alpine
 
-LABEL maintainer="Idan"
-LABEL description="Real-time Israeli Rocket Alert PWA"
+LABEL maintainer="Idan Maller"
+LABEL description="MallerAlert — Real-time Israeli Rocket Alert PWA"
 
 # Security: non-root user
 RUN addgroup -g 1001 -S appgroup && \
@@ -24,6 +24,7 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY package.json ./
 COPY server.js ./
 COPY public/ ./public/
+COPY well-known/ ./well-known/
 
 # Set ownership
 RUN chown -R appuser:appgroup /app
@@ -36,4 +37,4 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
 
 EXPOSE ${PORT:-3088}
 
-CMD ["node", "--watch", "server.js"]
+CMD ["node", "server.js"]

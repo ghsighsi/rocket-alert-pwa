@@ -3,3 +3,8 @@ node_modules/
 env
 .DS_Store
 *.log
+
+geojson-cache.json
+
+Thumbs.db
+desktop.ini

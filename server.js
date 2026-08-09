@@ -3,6 +3,7 @@ const http = require("http");
 const { Server } = require("socket.io");
 const https = require("https");
 const path = require("path");
+const fs = require("fs");
 
 const app = express();
 const server = http.createServer(app);
@@ -15,6 +16,7 @@ const io = new Server(server, {
 const PORT = process.env.PORT || 3088;
 const DEFAULT_CITY = process.env.DEFAULT_CITY || "";
 const POLL_INTERVAL = parseInt(process.env.POLL_INTERVAL, 10) || 2000;
+const GEO_CACHE_PATH = path.join(__dirname, "geojson-cache.json");
 
 // ── Keep-Alive agent למניעת handshake חוזר בכל בקשה ──
 const orefAgent = new https.Agent({
@@ -126,7 +128,43 @@ GEOJSON_SOURCES.push(
   "https://services5.arcgis.com/dlrDjz89gx9qyfev/ArcGIS/rest/services/authorities_bounding/FeatureServer/0/query?where=1%3D1&outFields=*&outSR=4326&f=geojson&resultRecordCount=2000",
 );
 
+// ── שמירה וטעינה מקומית של GeoJSON ──────────────────────
+function saveGeoJSONToDisk(geo) {
+  try {
+    fs.writeFileSync(GEO_CACHE_PATH, JSON.stringify(geo), "utf8");
+    console.log(`[GEO] Saved ${geo.features.length} features to disk cache`);
+  } catch (e) {
+    console.warn("[GEO] Failed to save cache to disk:", e.message);
+  }
+}
+
+function loadGeoJSONFromDisk() {
+  try {
+    if (!fs.existsSync(GEO_CACHE_PATH)) return null;
+    const raw = fs.readFileSync(GEO_CACHE_PATH, "utf8");
+    const geo = JSON.parse(raw);
+    if (geo && geo.features && geo.features.length > 10) {
+      console.log(`[GEO] Loaded ${geo.features.length} features from disk cache`);
+      return geo;
+    }
+  } catch (e) {
+    console.warn("[GEO] Failed to read disk cache:", e.message);
+  }
+  return null;
+}
+
 async function loadGeoJSON() {
+  // ── שלב 1: טען מדיסק מיידית (אם קיים) ──
+  if (!cachedGeoJSON) {
+    const diskGeo = loadGeoJSONFromDisk();
+    if (diskGeo) {
+      normalizeGeoProperties(diskGeo);
+      cachedGeoJSON = diskGeo;
+      console.log("[GEO] Using disk cache while fetching fresh data...");
+    }
+  }
+
+  // ── שלב 2: נסה לרענן מ-ArcGIS ──
   for (const url of GEOJSON_SOURCES) {
     const shortName = url.substring(0, 80) + "...";
     try {
@@ -137,6 +175,7 @@ async function loadGeoJSON() {
       if (geo && geo.features && geo.features.length > 10) {
         normalizeGeoProperties(geo);
         cachedGeoJSON = geo;
+        saveGeoJSONToDisk(geo); // ← שמור לדיסק לשימוש עתידי
         console.log(`[GEO] SUCCESS — loaded ${geo.features.length} boundaries`);
         return;
       } else if (geo && geo.error) {
@@ -149,13 +188,21 @@ async function loadGeoJSON() {
     }
   }
 
+  // ── שלב 3: ArcGIS נכשל ──
   geoLoadAttempts++;
-  if (geoLoadAttempts < MAX_GEO_ATTEMPTS) {
-    console.log(`[GEO] All sources failed, retry in 60s (attempt ${geoLoadAttempts}/${MAX_GEO_ATTEMPTS})`);
+  if (cachedGeoJSON) {
+    // יש גיבוי מדיסק — אין צורך ב-Voronoi
+    console.log("[GEO] ArcGIS unavailable, using disk cache as fallback");
+    if (geoLoadAttempts < MAX_GEO_ATTEMPTS) {
+      console.log(`[GEO] Will retry in 60s (attempt ${geoLoadAttempts}/${MAX_GEO_ATTEMPTS})`);
+      setTimeout(loadGeoJSON, 60000);
+    }
+  } else if (geoLoadAttempts < MAX_GEO_ATTEMPTS) {
+    console.log(`[GEO] All sources failed and no disk cache, retry in 60s (attempt ${geoLoadAttempts}/${MAX_GEO_ATTEMPTS})`);
     setTimeout(loadGeoJSON, 60000);
   } else {
-    // Fallback: generate Voronoi polygons from city coordinates
-    console.log("[GEO] Generating Voronoi polygons from city database...");
+    // אין כלום — Voronoi כמוצא אחרון
+    console.log("[GEO] No disk cache and ArcGIS failed — generating Voronoi as last resort");
     generateVoronoiGeoJSON();
   }
 }
@@ -300,6 +347,7 @@ let activeCityTimes = {};   // { cityName: timestamp } — when the city was add
 let releasedRecently = {};  // { cityName: timestamp } — cities released in last 10 min (don't re-alert)
 let lastAlertId = null;
 let lastAlertData = null;
+let lastReleaseTime = 0;  // timestamp of last release — suppress new alerts for 15s after
 
 function alertFingerprint(alertData) {
   if (!alertData) return null;
@@ -411,12 +459,20 @@ async function pollAlerts() {
           timestamp: alertData.alertDate || new Date().toISOString(),
         };
 
-        console.log(`[${type.toUpperCase()}] ${cities.length} cities: ${cities.join(", ")}`);
-        io.emit("alert", payload);
+        const now2 = Date.now();
+        if (now2 - lastReleaseTime < 15000) {
+          console.log(`[${type.toUpperCase()}] Suppressed (release cooldown): ${cities.join(", ")}`);
+        } else {
+          console.log(`[${type.toUpperCase()}] ${cities.length} cities: ${cities.join(", ")}`);
+          io.emit("alert", payload);
+        }
       }
 
       // Accumulate active cities with their type
+      // Skip cities that were recently released — the API may still echo them
+      // for up to ~60 seconds after a release wave
       cities.forEach((c) => {
+        if (releasedRecently[c]) return; // ignore — was just released
         activeCities.add(c);
         activeCityTimes[c] = Date.now();
         if (type === "alarm" || !activeCityTypes[c]) {
@@ -452,16 +508,22 @@ async function pollAlerts() {
         // Apply releases — only if the LATEST event for that city is cat 13
         const releasedCities = [];
         Object.entries(latestPerCity).forEach(([cityName, info]) => {
-          if (info.category === "13" && activeCities.has(cityName)) {
-            releasedCities.push({ name: cityName, coords: resolveCityCoords(cityName) });
-            activeCities.delete(cityName);
-            delete activeCityTypes[cityName];
-            delete activeCityTimes[cityName];
-            releasedRecently[cityName] = now; // Remember so we don't re-alert
+          if (info.category === "13") {
+            // Always mark as recently released — even if not currently active.
+            // This prevents missed-alert recovery from re-alerting cities that
+            // were just released in a bulk release wave.
+            releasedRecently[cityName] = now;
+            if (activeCities.has(cityName)) {
+              releasedCities.push({ name: cityName, coords: resolveCityCoords(cityName) });
+              activeCities.delete(cityName);
+              delete activeCityTypes[cityName];
+              delete activeCityTimes[cityName];
+            }
           }
         });
 
         if (releasedCities.length > 0) {
+          lastReleaseTime = Date.now();
           console.log(`[RELEASE] ${releasedCities.length} cities: ${releasedCities.map(c => c.name).join(", ")}`);
           io.emit("release", { cities: releasedCities });
         }
@@ -472,16 +534,23 @@ async function pollAlerts() {
         });
 
         // Collect released names for missed-alert filtering
+        // Also include cities released in the LAST 30 seconds — avoids re-alerting
+        // right after a release when the history still shows the old alert entry
         const releasedNames = new Set(releasedCities.map(c => c.name));
+        Object.entries(releasedRecently).forEach(([name, ts]) => {
+          if (now - ts < 30000) releasedNames.add(name);
+        });
 
         // Check for missed alerts — recent alerts not in activeCities
         const missedByType = { alarm: [], warning: [] };
+        const processedMissed = new Set(); // prevent duplicates within this iteration
         history.forEach((entry) => {
           const cat = String(entry.category);
           if (cat === "13" || !entry.data || !entry.alertDate) return;
           if (releasedNames.has(entry.data)) return;
           if (activeCities.has(entry.data)) return;
           if (releasedRecently[entry.data]) return; // Don't re-alert recently released
+          if (processedMissed.has(entry.data)) return; // already handled in this run
           // Only if latest event for this city is NOT a release
           const latest = latestPerCity[entry.data];
           if (latest && latest.category === "13") return;
@@ -497,6 +566,9 @@ async function pollAlerts() {
             activeCities.add(entry.data);
             activeCityTypes[entry.data] = type;
             activeCityTimes[entry.data] = Date.now();
+            processedMissed.add(entry.data);
+            // Also mark as recently released to prevent re-alerting after imminent release
+            // (give a short grace period of 30s before this city can be missed-alerted again)
           }
         });
 
@@ -516,8 +588,8 @@ async function pollAlerts() {
       }
     }
 
-    // Safety timeout: remove cities older than 30 minutes without refresh
-    const STALE_TIMEOUT = 30 * 60 * 1000;
+    // Safety timeout: remove cities older than 20 minutes without refresh
+    const STALE_TIMEOUT = 20 * 60 * 1000;
     const staleCities = [];
     activeCities.forEach((name) => {
       const addedAt = activeCityTimes[name] || 0;
@@ -546,6 +618,33 @@ async function startPolling() {
   setTimeout(startPolling, POLL_INTERVAL);
 }
 startPolling();
+
+// ── Digital Asset Links (TWA / Play Store) ───────────────
+// הקובץ well-known/assetlinks.json נקרא מהדיסק — ניתן לעדכן
+// את ה-SHA256 fingerprint בלי לרסטרט את השרת.
+app.get("/.well-known/assetlinks.json", (req, res) => {
+  const filePath = path.join(__dirname, "well-known", "assetlinks.json");
+  res.setHeader("Content-Type", "application/json");
+  res.setHeader("Cache-Control", "public, max-age=3600");
+  if (fs.existsSync(filePath)) {
+    res.sendFile(filePath);
+  } else {
+    // Fallback inline — עדכן את ה-SHA256 כאן לאחר יצירת ה-Keystore
+    res.json([{
+      relation: ["delegate_permission/common.handle_all_urls"],
+      target: {
+        namespace: "android_app",
+        package_name: "com.mallerapp.redalert",
+        sha256_cert_fingerprints: ["REPLACE_WITH_YOUR_SHA256_FINGERPRINT"],
+      },
+    }]);
+  }
+});
+
+// ── Privacy Policy ───────────────────────────────────────
+app.get("/privacy", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "privacy.html"));
+});
 
 // ── API & Static ─────────────────────────────────────────
 app.use(express.static(path.join(__dirname, "public"), {
@@ -589,6 +688,15 @@ app.get("/api/geojson-status", (req, res) => {
     sampleNames: cachedGeoJSON ? cachedGeoJSON.features.slice(0, 5).map(f => f.properties?._displayName || "?") : [],
     attempts: geoLoadAttempts,
   });
+});
+
+app.get("/api/city-coords", (req, res) => {
+  const out = {};
+  Object.entries(CITY_COORDS).forEach(([name, coords]) => {
+    out[name] = [coords[0], coords[1]];
+  });
+  res.setHeader("Cache-Control", "public, max-age=3600");
+  res.json(out);
 });
 
 app.get("/api/last-alert", (req, res) => {

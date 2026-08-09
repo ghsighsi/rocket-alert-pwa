@@ -1,12 +1,12 @@
 version: "3.8"
 
 services:
-  rocket-alert:
+  maller-alert:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: rocket-alert-pwa
-    image: rocket-alert-pwa:latest
+    container_name: maller-alert
+    image: maller-alert:latest
     restart: unless-stopped
     ports:
       - "${HOST_PORT:-3088}:${PORT:-3088}"
@@ -18,7 +18,9 @@ services:
       - NODE_ENV=production
     volumes:
       - ./public:/app/public:ro
+      - ./well-known:/app/well-known:ro
       - ./server.js:/app/server.js:ro
+      - geojson_cache:/app/geojson-cache.json
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3088/api/config"]
       interval: 30s
@@ -31,3 +33,5 @@ services:
         max-size: "10m"
         max-file: "3"
 
+volumes:
+  geojson_cache:

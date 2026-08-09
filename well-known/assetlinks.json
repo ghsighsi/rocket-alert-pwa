@@ -1,0 +1,8 @@
+[{
+  "relation": ["delegate_permission/common.handle_all_urls"],
+  "target": {
+    "namespace": "android_app",
+    "package_name": "com.mallerapp.redalert",
+    "sha256_cert_fingerprints": ["F0:78:39:B2:AE:55:F1:8A:DD:05:F4:59:CA:E3:EC:91:F6:FB:00:B6:3C:E6:8A:C0:AB:E2:CF:EA:7B:BB:23:D3"]
+  }
+}]

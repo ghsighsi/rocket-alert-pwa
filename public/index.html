@@ -7,9 +7,26 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="theme-color" content="#f0f0f5">
-  <meta name="description" content="התרעות צבע אדום בזמן אמת - Red Alert Israel">
 
-  <title>צבע אדום | Red Alert</title>
+  <title>MallerAlert — צבע אדום בזמן אמת</title>
+  <meta name="description" content="MallerAlert — צבע אדום בזמן אמת. מפת התרעות פיקוד העורף לכל הארץ, עדכון כל 2 שניות. Red Alert Israel live map.">
+  <meta name="keywords" content="צבע אדום, התרעות פיקוד העורף, red alert israel, malleralert, אזעקה, טילים, ירי רקטות, maller alert">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://malleralert.com/">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://malleralert.com/">
+  <meta property="og:title" content="MallerAlert — צבע אדום בזמן אמת">
+  <meta property="og:description" content="מפת התרעות פיקוד העורף לכל הארץ. עדכון כל 2 שניות, מיקום נוכחי, התראות דפדפן.">
+  <meta property="og:image" content="https://malleralert.com/icon-512.png">
+  <meta property="og:locale" content="he_IL">
+
+  <!-- Twitter/X -->
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="MallerAlert — צבע אדום בזמן אמת">
+  <meta name="twitter:description" content="מפת התרעות פיקוד העורף לכל הארץ. עדכון כל 2 שניות.">
+  <meta name="twitter:image" content="https://malleralert.com/icon-512.png">
 
   <link rel="manifest" href="/manifest.json">
   <link rel="icon" type="image/svg+xml" href="/icon.svg">
@@ -22,7 +39,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700;800;900&family=Noto+Sans+Hebrew:wght@400;600;700;900&display=swap" rel="stylesheet">
 
-  <link rel="stylesheet" href="/style.css?v=31">
+  <link rel="stylesheet" href="/style.css?v=33">
 </head>
 <body class="theme-light">
   <!-- ── Map ── -->
@@ -38,7 +55,7 @@
             <circle cx="12" cy="10" r="3"/>
           </svg>
         </div>
-        <span class="brand-text">צבע אדום</span>
+        <span class="brand-text">MallerAlert</span>
       </div>
 
       <div class="topbar-actions">
@@ -102,6 +119,15 @@
       </div>
 
       <div class="setting-group">
+        <label class="setting-label">מיקום נוכחי</label>
+        <p class="setting-desc">התרעה לפי המיקום שלך בזמן אמת</p>
+        <div class="setting-row">
+          <span id="location-status" class="notif-status">לא מופעל</span>
+          <button id="btn-enable-location" class="setting-btn">הפעל</button>
+        </div>
+      </div>
+
+      <div class="setting-group" id="setting-group-city">
         <label class="setting-label">עיר בית</label>
         <p class="setting-desc">קבלת התראות כשיש אזעקה בעיר שלך</p>
         <select id="select-city" class="setting-select">
@@ -110,7 +136,6 @@
       </div>
 
       <div class="setting-group">
-        <label class="setting-label">התראות דפדפן</label>
         <p class="setting-desc">הפעלת Push Notifications</p>
         <div class="setting-row">
           <span id="notif-status" class="notif-status">לא מופעל</span>
@@ -138,14 +163,19 @@
       </div>
 
       <div class="panel-footer">
-        <p>מקור: פיקוד העורף<br>עדכון כל 2 שניות</p>
+        <p>MallerAlert | מקור: פיקוד העורף<br>עדכון כל 2 שניות</p>
       </div>
     </div>
+  </div>
+
+  <!-- ── Disclaimer ── -->
+  <div id="disclaimer-bar">
+    ⚠️ אתר זה אינו מחליף את מערכות ההתרעה הרשמיות של פיקוד העורף. במקרה חירום פעלו לפי הנחיות פיקוד העורף בלבד.
   </div>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
     integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
   <script src="/socket.io/socket.io.js"></script>
-  <script src="/app.js?v=31"></script>
+  <script src="/app.js?v=33"></script>
 </body>
 </html>

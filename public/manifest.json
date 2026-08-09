@@ -1,14 +1,17 @@
 {
-  "name": "צבע אדום - Red Alert",
-  "short_name": "צבע אדום",
-  "description": "התרעות צבע אדום בזמן אמת",
+  "name": "MallerAlert — צבע אדום",
+  "short_name": "MallerAlert",
+  "description": "התרעות פיקוד העורף בזמן אמת על מפה. עדכון כל 2 שניות, מיקום נוכחי, התראות לעיר שלך.",
   "start_url": "/",
+  "scope": "/",
+  "id": "/",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#0a0a0f",
   "theme_color": "#0a0a0f",
   "lang": "he",
   "dir": "rtl",
+  "prefer_related_applications": false,
   "icons": [
     {
       "src": "/icon.svg",
@@ -19,14 +22,35 @@
       "src": "/icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
     },
     {
       "src": "/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ],
-  "categories": ["utilities", "news"]
+  "categories": ["utilities", "news"],
+  "shortcuts": [
+    {
+      "name": "מצב נסיעה",
+      "short_name": "נסיעה",
+      "description": "מפה עם מצב נסיעה פעיל",
+      "url": "/?drive=1",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    }
+  ]
 }
